@@ -227,19 +227,19 @@ function animate() {
     // create the illusion of player movement.  Since there is a 
     // key pressed, we advanceFrame() to see the walk-cycle.
     if (keys.w.pressed) {
-      mapSprite.position.y += 3;
+      mapSprite.position.y += 4;
       playerUpSprite.draw();
       playerUpSprite.advanceFrame();
     } else if (keys.a.pressed) {
-      mapSprite.position.x += 3;
+      mapSprite.position.x += 4;
       playerLeftSprite.draw();
       playerLeftSprite.advanceFrame();
     } else if (keys.s.pressed) {
-      mapSprite.position.y -= 3;
+      mapSprite.position.y -= 4;
       playerDownSprite.draw();
       playerDownSprite.advanceFrame();
     } else if (keys.d.pressed) {
-      mapSprite.position.x -= 3;
+      mapSprite.position.x -= 4;
       playerRightSprite.draw();
       playerRightSprite.advanceFrame();
     } else {
