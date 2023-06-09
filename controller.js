@@ -5,7 +5,7 @@
 /*
  * Sprite (position: {x: Number, y: Number}, image: Image)
  * This class is used for the map. Takes a position object with
- * an x and y coordinate.
+ * an x and y coordinate and an Image.
  */
 class Sprite {
   constructor({ position, image }) {
