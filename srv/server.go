@@ -27,7 +27,7 @@ func NewServer() *Server {
 // Handle all new client connection requests and store them in a Global thread-safe Map
 func (s *Server) handleWS(ws *websocket.Conn) {
 	log.Println("New incoming connection from client:", ws.RemoteAddr())
-	var initPos = []int{-350, -350, 115}
+	var initPos = []int64{-350, -350, 115}
 	s.conns.Store(ws, initPos)
 	go s.readLoop(ws)
 	s.updateLoop()
@@ -50,13 +50,18 @@ func (s *Server) readLoop(ws *websocket.Conn) {
 		}
 
 		msg := buf[:n]
-		var intPos []int
+		var intPos []int64
 		err = json.Unmarshal(msg, &intPos)
 		if err != nil {
 			log.Println("Unable to read pos:", err)
 		}
-		fmt.Println("msg:", intPos)
-		ws.Write([]byte("Message received"))
+		if len(intPos) == 0 {
+			continue
+		}
+
+		s.conns.Store(ws, intPos)
+		fmt.Println("pos:", intPos)
+
 	}
 }
 
@@ -77,12 +82,12 @@ func (s *Server) updateLoop() {
 
 	for {
 		select {
-		case t := <-ticker.C:
+		case <-ticker.C:
 			// Combine locations from all Map keys
-			fmt.Println("Tick at:", t)
-			buf := make([]int, MAX_BUF)
+			// fmt.Println("Tick at:", t)
+			var buf = []int64{}
 			s.conns.Range(func(key, value any) bool {
-				for _, val := range value.([]int) {
+				for _, val := range value.([]int64) {
 					buf = append(buf, val)
 				}
 				buf = append(buf, 0)
@@ -92,7 +97,7 @@ func (s *Server) updateLoop() {
 			s.conns.Range(func(key, value any) bool {
 				b, err := json.Marshal(buf)
 				if err != nil {
-					fmt.Println("Cannot convert []int to []byte:", err)
+					fmt.Println("Cannot convert []int64 to []byte:", err)
 					return false
 				}
 				key.(*websocket.Conn).Write(b)
