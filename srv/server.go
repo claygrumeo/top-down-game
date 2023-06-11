@@ -1,23 +1,28 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
+	"os"
 	"sync"
 	"time"
+	"unsafe"
 
 	"golang.org/x/net/websocket"
 )
 
-const MAX_BUF = 1024
-
-const TICK_RATE = 30
+const RANDN = 10000
 
 type Server struct {
-	conns sync.Map // Use concurrent Maps
+	MAX_BUF   int64
+	TICK_RATE int64
+	conns     sync.Map // Use concurrent Maps
+	wg        sync.WaitGroup
 }
 
 func NewServer() *Server {
@@ -25,18 +30,48 @@ func NewServer() *Server {
 }
 
 // Handle all new client connection requests and store them in a Global thread-safe Map
+// since the writes to kv pairs in this map are mutually exclusive but concurrent.
 func (s *Server) handleWS(ws *websocket.Conn) {
-	log.Println("New incoming connection from client:", ws.RemoteAddr())
-	var initPos = []int64{-350, -350, 115}
-	s.conns.Store(ws, initPos)
-	go s.readLoop(ws)
-	s.updateLoop()
 
+	log.Println("New incoming connection from client:", ws.RemoteAddr())
+	// Generate a client ID
+	x1 := rand.NewSource(time.Now().UnixNano())
+	y1 := rand.New(x1)
+	clientid := y1.Intn(RANDN)
+	cidbuf := make([]byte, unsafe.Sizeof(clientid))
+	binary.LittleEndian.PutUint64(cidbuf, uint64(clientid))
+
+	// Write the ID to the client as first communication.
+	ws.Write(cidbuf)
+	var ack = make([]byte, 1)
+
+	// Read the ACK response from client.
+	n, err := ws.Read(ack)
+	if n != 1 {
+		log.Println("Cannot confirm client ack: Msg length invalid")
+		os.Exit(1)
+	}
+
+	if err != nil {
+		log.Fatal("Error while receiving ack from client:", err.Error())
+		os.Exit(1)
+	}
+
+	if ack[0] != 1 {
+		log.Fatal("Client denied communication: Ack is", ack[0])
+		os.Exit(1)
+	}
+
+	// Default position for a new connected client
+	var initPos = []int64{int64(clientid), -700, -350, 115}
+	s.conns.Store(ws, initPos)
+	// Read positions from this client
+	s.readLoop(ws)
 }
 
 // Put each client inside a read loop
 func (s *Server) readLoop(ws *websocket.Conn) {
-	buf := make([]byte, MAX_BUF)
+	buf := make([]byte, s.MAX_BUF)
 	for {
 		n, err := ws.Read(buf)
 		if err != nil {
@@ -70,21 +105,14 @@ func (s *Server) clientDisconnect(ws *websocket.Conn) {
 	s.conns.Delete(ws)
 }
 
-// Perform necessary calculations after combining inputs from all clients
-func calculatePos() {
-
-}
-
 // Broadcast the updates to all connected clients according to the server tickrate
 func (s *Server) updateLoop() {
-
-	ticker := time.NewTicker(TICK_RATE * time.Millisecond)
+	ticker := time.NewTicker(time.Duration(s.TICK_RATE) * time.Millisecond)
 
 	for {
 		select {
 		case <-ticker.C:
 			// Combine locations from all Map keys
-			// fmt.Println("Tick at:", t)
 			var buf = []int64{}
 			s.conns.Range(func(key, value any) bool {
 				for _, val := range value.([]int64) {
@@ -97,7 +125,7 @@ func (s *Server) updateLoop() {
 			s.conns.Range(func(key, value any) bool {
 				b, err := json.Marshal(buf)
 				if err != nil {
-					fmt.Println("Cannot convert []int64 to []byte:", err)
+					fmt.Println("Cannot convert []int64 to []byte:", err.Error())
 					return false
 				}
 				key.(*websocket.Conn).Write(b)
@@ -111,8 +139,17 @@ func (s *Server) updateLoop() {
 }
 
 func main() {
+
 	server := NewServer()
+	server.TICK_RATE = 30
+	server.MAX_BUF = 1024
+
+	// Update all clients by broadcasting the current state (position of all clients) of the game
+	go server.updateLoop()
+
+	// Handle websocket requests on /ws endpoint
 	http.Handle("/ws", websocket.Handler(server.handleWS))
 	log.Println("Listening on port 3025")
 	http.ListenAndServe(":3025", nil)
+
 }
