@@ -14,6 +14,7 @@ class Sprite {
     this.sprites = sprites;
     this.activeFrame = 0;
     this.width = this.image.width / this.numFrames;
+    this.height = this.image.height;
   }
 
   draw() {

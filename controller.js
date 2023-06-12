@@ -363,6 +363,7 @@ function boundariesPreventMovement({ movable, direction }) {
     }
 
     if (collisionsExist({ rect1: movable, rect2: bound })) {
+      console.log("EXIST", movable, bound)
       result = true;
       break;
     }
