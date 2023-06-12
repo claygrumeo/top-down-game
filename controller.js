@@ -114,140 +114,176 @@ window.addEventListener("keyup", (e) => {
  * ASSETS *
  **********/
 
+// Container for all sprites
+const allSprites = [];
+
 // Downward-facing player
-const playerDown = new Image();
-playerDown.src = "./assets/playerDown.png";
-let playerDownSprite;
-playerDown.onload = () => {
-  playerDownSprite = new PlayerSprite({
-    image: playerDown,
-  });
-};
-
+const playerDownSprite = new Image();
+playerDownSprite.src = "./assets/playerDown.png";
 // Upward-facing player
-const playerUp = new Image();
-playerUp.src = "./assets/playerUp.png";
-let playerUpSprite;
-playerUp.onload = () => {
-  playerUpSprite = new PlayerSprite({
-    image: playerUp,
-  });
-};
-
+const playerUpSprite = new Image();
+playerUpSprite.src = "./assets/playerUp.png";
 // Left-facing player
-const playerLeft = new Image();
-playerLeft.src = "./assets/playerLeft.png";
-let playerLeftSprite;
-playerLeft.onload = () => {
-  playerLeftSprite = new PlayerSprite({
-    image: playerLeft,
-  });
-};
-
+const playerLeftSprite = new Image();
+playerLeftSprite.src = "./assets/playerLeft.png";
 // Right-facing player
-const playerRight = new Image();
-playerRight.src = "./assets/playerRight.png";
-let playerRightSprite;
-playerRight.onload = () => {
-  playerRightSprite = new PlayerSprite({
-    image: playerRight,
-  });
-};
-
+const playerRightSprite = new Image();
+playerRightSprite.src = "./assets/playerRight.png";
 // Map sprite
-const mainMap = new Image();
-mainMap.src = "./MapCustom.png";
-const mapSprite = new Sprite({
-  image: mainMap,
-  position: { x: mapOffset.x, y: mapOffset.y },
-});
+const mainMapSprite = new Image();
+mainMapSprite.src = "./MapCustom.png";
 
-/*************
- * ANIMATION *
- *************/
+// Add all sprites to list
+allSprites.push(
+  playerDownSprite,
+  playerUpSprite,
+  playerLeftSprite,
+  playerRightSprite,
+  mainMapSprite
+);
 
-const testBound = new Boundary({ position: { x: 600, y: 300 } });
-const movables = [mapSprite, ...finalBoundaries, testBound];
+// Load images and
+let imagesLoaded = 0;
+allSprites.forEach((sprite) => {
+  sprite.onload = () => {
+    imagesLoaded++;
 
-function animate() {
-  window.requestAnimationFrame(animate);
-  // Always draw the map
-  mapSprite.draw();
+    if (imagesLoaded === allSprites.length) {
+      /***********
+       * SPRITES *
+       ***********/
 
-  // Uncomment this to see the boundaries - 
-  // You will see that the map needs some redesign to allow for player
-  // passthrough in areas that are a bit tight. 
-  // finalBoundaries.forEach((boundary) => {
-  //   boundary.draw();
-  // });
-
-  // testBound.draw();
-  // Make sure the initial player sprite is loaded at
-  // the beginning before any movement can happen
-  if (playerDownSprite) {
-    // Based on the key, adjust the position of the map to
-    // create the illusion of player movement.  Since there is a
-    // key pressed, we advanceFrame() to see the walk-cycle.
-    if (keys.w.pressed && !boundariesPreventMovement({ direction: "up" })) {
-      movables.forEach((movable) => {
-        movable.position.y += 4;
+      const mapSprite = new Sprite({
+        image: mainMapSprite,
+        position: { x: mapOffset.x, y: mapOffset.y },
+        numFrames: 1,
+        sprites: {},
       });
-      playerUpSprite.draw();
-      playerUpSprite.advanceFrame();
-    } else if (
-      keys.a.pressed &&
-      !boundariesPreventMovement({ direction: "left" })
-    ) {
-      movables.forEach((movable) => {
-        movable.position.x += 4;
+
+      const playerSprite = new Sprite({
+        image: playerDownSprite,
+        position: {
+          x: canvas.width / 2 - playerDownSprite.width / 4 / 2,
+          y: canvas.height / 2,
+        },
+        numFrames: 4,
+        sprites: {
+          up: playerUpSprite,
+          down: playerDownSprite,
+          left: playerLeftSprite,
+          right: playerRightSprite,
+        },
       });
-      playerLeftSprite.draw();
-      playerLeftSprite.advanceFrame();
-    } else if (
-      keys.s.pressed &&
-      !boundariesPreventMovement({ direction: "down" })
-    ) {
-      movables.forEach((movable) => {
-        movable.position.y -= 4;
-      });
-      playerDownSprite.draw();
-      playerDownSprite.advanceFrame();
-    } else if (
-      keys.d.pressed &&
-      !boundariesPreventMovement({ direction: "right" })
-    ) {
-      movables.forEach((movable) => {
-        movable.position.x -= 4;
-      });
-      playerRightSprite.draw();
-      playerRightSprite.advanceFrame();
-    } else {
-      // If none of the directional keys are pressed, we need to
-      // show the player standing still.  Based on which key was last
-      // pressed, show the player standing still in the proper direction.
-      switch (lastKey) {
-        case "w":
-          playerUpSprite.resetFrame();
-          playerUpSprite.draw();
-          break;
-        case "a":
-          playerLeftSprite.resetFrame();
-          playerLeftSprite.draw();
-          break;
-        case "s":
-          playerDownSprite.resetFrame();
-          playerDownSprite.draw();
-          break;
-        case "d":
-          playerRightSprite.resetFrame();
-          playerRightSprite.draw();
-          break;
+
+      /*************
+       * ANIMATION *
+       *************/
+
+      const movables = [mapSprite, ...finalBoundaries];
+
+      function animate() {
+        window.requestAnimationFrame(animate);
+        // Always draw the map
+        if (mapSprite) mapSprite.draw();
+
+        // Uncomment this to see the boundaries -
+        // You will see that the map needs some redesign to allow for player
+        // passthrough in areas that are a bit tight.
+        // finalBoundaries.forEach((boundary) => {
+        //   boundary.draw();
+        // });
+
+        // Make sure the initial player sprite is loaded at
+        // the beginning before any movement can happen
+        if (playerDownSprite) {
+          // Based on the key, adjust the position of the map to
+          // create the illusion of player movement.  Since there is a
+          // key pressed, we advanceFrame() to see the walk-cycle.
+          if (
+            keys.w.pressed &&
+            !boundariesPreventMovement({
+              movable: playerSprite,
+              direction: "up",
+            })
+          ) {
+            movables.forEach((movable) => {
+              movable.position.y += 4;
+            });
+            playerSprite.image = playerSprite.sprites.up;
+            playerSprite.draw();
+            playerSprite.advanceFrame();
+          } else if (
+            keys.a.pressed &&
+            !boundariesPreventMovement({
+              movable: playerSprite,
+              direction: "left",
+            })
+          ) {
+            movables.forEach((movable) => {
+              movable.position.x += 4;
+            });
+            playerSprite.image = playerSprite.sprites.left;
+            playerSprite.draw();
+            playerSprite.advanceFrame();
+          } else if (
+            keys.s.pressed &&
+            !boundariesPreventMovement({
+              movable: playerSprite,
+              direction: "down",
+            })
+          ) {
+            movables.forEach((movable) => {
+              movable.position.y -= 4;
+            });
+            playerSprite.image = playerSprite.sprites.down;
+            playerSprite.draw();
+            playerSprite.advanceFrame();
+          } else if (
+            keys.d.pressed &&
+            !boundariesPreventMovement({
+              movable: playerSprite,
+              direction: "right",
+            })
+          ) {
+            movables.forEach((movable) => {
+              movable.position.x -= 4;
+            });
+            playerSprite.image = playerSprite.sprites.right;
+            playerSprite.draw();
+            playerSprite.advanceFrame();
+          } else {
+            // If none of the directional keys are pressed, we need to
+            // show the player standing still.  Based on which key was last
+            // pressed, show the player standing still in the proper direction.
+            switch (lastKey) {
+              case "w":
+                playerSprite.sprite = playerSprite.sprites.up;
+                playerSprite.resetFrame();
+                playerSprite.draw();
+                break;
+              case "a":
+                playerSprite.sprite = playerSprite.sprites.left;
+                playerSprite.resetFrame();
+                playerSprite.draw();
+                break;
+              case "s":
+                playerSprite.sprite = playerSprite.sprites.down;
+                playerSprite.resetFrame();
+                playerSprite.draw();
+                break;
+              case "d":
+                playerSprite.sprite = playerSprite.sprites.right;
+                playerSprite.resetFrame();
+                playerSprite.draw();
+                break;
+            }
+          }
+        }
       }
+      animate();
     }
-  }
-}
-
-animate();
+  };
+});
 
 /**********
  * HELPERS *
@@ -270,7 +306,9 @@ function throttle(func, delay) {
   };
 }
 
+// Given two rectangles, see if they overlap
 function collisionsExist({ rect1, rect2 }) {
+  console.log(rect1, rect2)
   return (
     rect1.position.x <= rect2.position.x + Boundary.width &&
     rect1.position.x + rect1.width >= rect2.position.x &&
@@ -279,12 +317,13 @@ function collisionsExist({ rect1, rect2 }) {
   );
 }
 
-function boundariesPreventMovement({ direction }) {
+// Given a sprite that moves, and the direction it's about to move in,
+// Create a comparison to send to collisionsExist
+function boundariesPreventMovement({ movable, direction }) {
   let result = false;
 
   for (let i = 0; i < finalBoundaries.length; i++) {
     let bound;
-    let player;
     switch (direction) {
       case "up":
         bound = {
@@ -294,7 +333,6 @@ function boundariesPreventMovement({ direction }) {
             y: finalBoundaries[i].position.y + 4,
           },
         };
-        player = playerUpSprite;
         break;
       case "left":
         bound = {
@@ -304,7 +342,6 @@ function boundariesPreventMovement({ direction }) {
             y: finalBoundaries[i].position.y,
           },
         };
-        player = playerLeftSprite;
         break;
       case "down":
         bound = {
@@ -314,7 +351,6 @@ function boundariesPreventMovement({ direction }) {
             y: finalBoundaries[i].position.y - 4,
           },
         };
-        player = playerDownSprite;
         break;
       case "right":
         bound = {
@@ -324,11 +360,10 @@ function boundariesPreventMovement({ direction }) {
             y: finalBoundaries[i].position.y,
           },
         };
-        player = playerRightSprite;
         break;
     }
 
-    if (collisionsExist({ rect1: player, rect2: bound })) {
+    if (collisionsExist({ rect1: movable, rect2: bound })) {
       result = true;
       break;
     }
