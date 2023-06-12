@@ -308,7 +308,6 @@ function throttle(func, delay) {
 
 // Given two rectangles, see if they overlap
 function collisionsExist({ rect1, rect2 }) {
-  console.log(rect1, rect2)
   return (
     rect1.position.x <= rect2.position.x + Boundary.width &&
     rect1.position.x + rect1.width >= rect2.position.x &&

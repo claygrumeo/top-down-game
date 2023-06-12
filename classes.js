@@ -3,7 +3,7 @@
  ***********/
 
 /*
- * Sprite (position: {x: Number, y: Number}, image: Image)
+ * Sprite (position: {x: Number, y: Number}, image: Image, numFrames: Number, sprites: {up: Image, down: Image, left: Image, right: Image})
  * This class is used for all sprites.
  */
 class Sprite {
@@ -33,7 +33,7 @@ class Sprite {
 
   // Private function to advance the frame
   #advanceFrameAction() {
-    if (this.activeFrame === (this.numFrames - 1)) {
+    if (this.activeFrame === this.numFrames - 1) {
       this.activeFrame = 0;
     } else {
       this.activeFrame += 1;
