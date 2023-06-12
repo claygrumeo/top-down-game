@@ -184,7 +184,7 @@ allSprites.forEach((sprite) => {
       function animate() {
         window.requestAnimationFrame(animate);
         // Always draw the map
-        if (mapSprite) mapSprite.draw();
+        mapSprite.draw();
 
         // Uncomment this to see the boundaries -
         // You will see that the map needs some redesign to allow for player
@@ -193,95 +193,91 @@ allSprites.forEach((sprite) => {
         //   boundary.draw();
         // });
 
-        // Make sure the initial player sprite is loaded at
-        // the beginning before any movement can happen
-        if (playerDownSprite) {
-          // Based on the key, adjust the position of the map to
-          // create the illusion of player movement.  Since there is a
-          // key pressed, we advanceFrame() to see the walk-cycle.
-          if (
-            keys.w.pressed &&
-            !boundariesPreventMovement({
-              movable: playerSprite,
-              direction: "up",
-            })
-          ) {
-            movables.forEach((movable) => {
-              movable.position.y += 4;
-            });
-            playerSprite.image = playerSprite.sprites.up;
-            playerSprite.draw();
-            playerSprite.advanceFrame();
-          } else if (
-            keys.a.pressed &&
-            !boundariesPreventMovement({
-              movable: playerSprite,
-              direction: "left",
-            })
-          ) {
-            movables.forEach((movable) => {
-              movable.position.x += 4;
-            });
-            playerSprite.image = playerSprite.sprites.left;
-            playerSprite.draw();
-            playerSprite.advanceFrame();
-          } else if (
-            keys.s.pressed &&
-            !boundariesPreventMovement({
-              movable: playerSprite,
-              direction: "down",
-            })
-          ) {
-            movables.forEach((movable) => {
-              movable.position.y -= 4;
-            });
-            playerSprite.image = playerSprite.sprites.down;
-            playerSprite.draw();
-            playerSprite.advanceFrame();
-          } else if (
-            keys.d.pressed &&
-            !boundariesPreventMovement({
-              movable: playerSprite,
-              direction: "right",
-            })
-          ) {
-            movables.forEach((movable) => {
-              movable.position.x -= 4;
-            });
-            playerSprite.image = playerSprite.sprites.right;
-            playerSprite.draw();
-            playerSprite.advanceFrame();
-          } else {
-            // If none of the directional keys are pressed, we need to
-            // show the player standing still.  Based on which key was last
-            // pressed, show the player standing still in the proper direction.
-            switch (lastKey) {
-              case "w":
-                playerSprite.sprite = playerSprite.sprites.up;
-                playerSprite.resetFrame();
-                playerSprite.draw();
-                break;
-              case "a":
-                playerSprite.sprite = playerSprite.sprites.left;
-                playerSprite.resetFrame();
-                playerSprite.draw();
-                break;
-              case "s":
-                playerSprite.sprite = playerSprite.sprites.down;
-                playerSprite.resetFrame();
-                playerSprite.draw();
-                break;
-              case "d":
-                playerSprite.sprite = playerSprite.sprites.right;
-                playerSprite.resetFrame();
-                playerSprite.draw();
-                break;
-            }
+        // Based on the key, adjust the position of the map to
+        // create the illusion of player movement.  Since there is a
+        // key pressed, we advanceFrame() to see the walk-cycle.
+        if (
+          keys.w.pressed &&
+          !boundariesPreventMovement({
+            movable: playerSprite,
+            direction: "up",
+          })
+        ) {
+          movables.forEach((movable) => {
+            movable.position.y += 4;
+          });
+          playerSprite.image = playerSprite.sprites.up;
+          playerSprite.draw();
+          playerSprite.advanceFrame();
+        } else if (
+          keys.a.pressed &&
+          !boundariesPreventMovement({
+            movable: playerSprite,
+            direction: "left",
+          })
+        ) {
+          movables.forEach((movable) => {
+            movable.position.x += 4;
+          });
+          playerSprite.image = playerSprite.sprites.left;
+          playerSprite.draw();
+          playerSprite.advanceFrame();
+        } else if (
+          keys.s.pressed &&
+          !boundariesPreventMovement({
+            movable: playerSprite,
+            direction: "down",
+          })
+        ) {
+          movables.forEach((movable) => {
+            movable.position.y -= 4;
+          });
+          playerSprite.image = playerSprite.sprites.down;
+          playerSprite.draw();
+          playerSprite.advanceFrame();
+        } else if (
+          keys.d.pressed &&
+          !boundariesPreventMovement({
+            movable: playerSprite,
+            direction: "right",
+          })
+        ) {
+          movables.forEach((movable) => {
+            movable.position.x -= 4;
+          });
+          playerSprite.image = playerSprite.sprites.right;
+          playerSprite.draw();
+          playerSprite.advanceFrame();
+        } else {
+          // If none of the directional keys are pressed, we need to
+          // show the player standing still.  Based on which key was last
+          // pressed, show the player standing still in the proper direction.
+          switch (lastKey) {
+            case "w":
+              playerSprite.sprite = playerSprite.sprites.up;
+              playerSprite.resetFrame();
+              playerSprite.draw();
+              break;
+            case "a":
+              playerSprite.sprite = playerSprite.sprites.left;
+              playerSprite.resetFrame();
+              playerSprite.draw();
+              break;
+            case "s":
+              playerSprite.sprite = playerSprite.sprites.down;
+              playerSprite.resetFrame();
+              playerSprite.draw();
+              break;
+            case "d":
+              playerSprite.sprite = playerSprite.sprites.right;
+              playerSprite.resetFrame();
+              playerSprite.draw();
+              break;
           }
         }
       }
-      animate();
     }
+    animate();
   };
 });
 
@@ -363,11 +359,14 @@ function boundariesPreventMovement({ movable, direction }) {
     }
 
     if (collisionsExist({ rect1: movable, rect2: bound })) {
-      console.log("EXIST", movable, bound)
       result = true;
       break;
     }
   }
 
   return result;
+}
+
+function coveredByForeground() {
+  return false;
 }
