@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"os"
 	"sync"
 	"time"
-	"unsafe"
 
 	"golang.org/x/net/websocket"
 )
@@ -33,13 +31,15 @@ func NewServer() *Server {
 // since the writes to kv pairs in this map are mutually exclusive but concurrent.
 func (s *Server) handleWS(ws *websocket.Conn) {
 
-	log.Println("New incoming connection from client:", ws.RemoteAddr())
+	log.Println("New incoming connection from client:", ws.LocalAddr())
 	// Generate a client ID
 	x1 := rand.NewSource(time.Now().UnixNano())
 	y1 := rand.New(x1)
 	clientid := y1.Intn(RANDN)
-	cidbuf := make([]byte, unsafe.Sizeof(clientid))
-	binary.LittleEndian.PutUint64(cidbuf, uint64(clientid))
+	// cidbuf := make([]byte, unsafe.Sizeof(clientid))
+	// binary.LittleEndian.PutUint64(cidbuf, uint64(clientid))
+
+	cidbuf, _ := json.Marshal(clientid)
 
 	// Write the ID to the client as first communication.
 	ws.Write(cidbuf)
@@ -48,7 +48,7 @@ func (s *Server) handleWS(ws *websocket.Conn) {
 	// Read the ACK response from client.
 	n, err := ws.Read(ack)
 	if n != 1 {
-		log.Println("Cannot confirm client ack: Msg length invalid")
+		log.Println("Cannot confirm client ack: Msg length invalid --", n)
 		os.Exit(1)
 	}
 
@@ -141,15 +141,24 @@ func (s *Server) updateLoop() {
 func main() {
 
 	server := NewServer()
-	server.TICK_RATE = 30
+	wsServer := websocket.Server{}
+	wsServer.Handshake = func(c *websocket.Config, r *http.Request) (err error) {
+		c.Origin, err = websocket.Origin(c, r)
+		if err == nil && c.Origin == nil {
+			fmt.Println("null origin")
+		}
+		return nil
+	}
+
+	wsServer.Handler = server.handleWS
+	server.TICK_RATE = 1000
 	server.MAX_BUF = 1024
 
 	// Update all clients by broadcasting the current state (position of all clients) of the game
 	go server.updateLoop()
-
 	// Handle websocket requests on /ws endpoint
-	http.Handle("/ws", websocket.Handler(server.handleWS))
-	log.Println("Listening on port 3025")
-	http.ListenAndServe(":3025", nil)
+	http.Handle("/ws", wsServer)
+	log.Println("Listening on port 8443")
+	http.ListenAndServe(":8443", nil)
 
 }

@@ -370,3 +370,53 @@ function boundariesPreventMovement({ movable, direction }) {
 function coveredByForeground() {
   return false;
 }
+
+
+/**
+ * Experimental multiplayer rendering.
+ * If you uncomment the for loop in parsePlayerPos,
+ * the browser hangs due to a lot of activity.
+ * Need to restructure how players are drawn on the screen.
+ * Draw the current player in realtime, loop through the map 
+ * and draw other players using the same functions.
+ */
+
+let myclientid = NaN
+let idPosMap = new Map()
+let socket = new WebSocket("ws://localhost:8443/ws", 'echo-protocol')
+
+socket.binaryType = "arraybuffer"
+socket.onopen = function(e) {
+  console.log("Connection established to the server: e = ", e)
+  var abuf = new ArrayBuffer(4)
+  new Int32Array(abuf)[0] = 1
+  socket.send(abuf)
+}
+
+socket.onmessage = function(e) {
+  if (e.data.length < 6) {
+    myclientid = parseInt(e.data)
+    // console.log(e.data)
+
+  } else {
+    parsePlayerPos(e.data)
+    console.log(idPosMap)
+  }
+}
+
+function parsePlayerPos(posArrString) {
+  posArr = JSON.parse(posArrString)
+  // // console.log(posArr)
+  let i = 0
+  // for(let i = 0; i < posArr.length();) {
+    // if(posArr[i] == myclientid)
+    //   continue
+    pos = posArr.slice(i+1, i+4);
+    idPosMap.set(posArr[i], pos)
+    // console.log(pos)
+    // i += 5
+  // }
+}
+
+
+
