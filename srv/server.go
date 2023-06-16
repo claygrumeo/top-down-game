@@ -88,6 +88,7 @@ func (s *Server) readLoop(ws *websocket.Conn) {
 		var intPos []int64
 		err = json.Unmarshal(msg, &intPos)
 		if err != nil {
+			log.Println(msg)
 			log.Println("Unable to read pos:", err)
 		}
 		if len(intPos) == 0 {
@@ -151,7 +152,7 @@ func main() {
 	}
 
 	wsServer.Handler = server.handleWS
-	server.TICK_RATE = 1000
+	server.TICK_RATE = 30
 	server.MAX_BUF = 1024
 
 	// Update all clients by broadcasting the current state (position of all clients) of the game

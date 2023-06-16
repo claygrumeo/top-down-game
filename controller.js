@@ -110,12 +110,16 @@ window.addEventListener("keyup", (e) => {
   }
 });
 
+let socket = new WebSocket("ws://localhost:8443/ws", 'echo-protocol')
+socket.binaryType = "arraybuffer"
+
 /**********
  * ASSETS *
  **********/
 
 // Container for all sprites
 const allSprites = [];
+const otherPlayerSpritesByCid = new Map();
 
 // Downward-facing player
 const playerDownSprite = new Image();
@@ -175,6 +179,24 @@ allSprites.forEach((sprite) => {
         },
       });
 
+      for (let cid of idPosMap.keys()) {
+        let playerSpriteOther = new Sprite({
+          image: playerDownSprite,
+          position: {
+            x: canvas.width / 2 - playerDownSprite.width / 4 / 2,
+            y: canvas.height / 2,
+          },
+          numFrames: 4,
+          sprites: {
+            up: playerUpSprite,
+            down: playerDownSprite,
+            left: playerLeftSprite,
+            right: playerRightSprite,
+          },
+        });
+        otherPlayerSpritesByCid.set(cid, playerSpriteOther);
+      }
+
       /*************
        * ANIMATION *
        *************/
@@ -196,6 +218,7 @@ allSprites.forEach((sprite) => {
         // Based on the key, adjust the position of the map to
         // create the illusion of player movement.  Since there is a
         // key pressed, we advanceFrame() to see the walk-cycle.
+        var lastkeyInt = 0;
         if (
           keys.w.pressed &&
           !boundariesPreventMovement({
@@ -257,23 +280,72 @@ allSprites.forEach((sprite) => {
               playerSprite.sprite = playerSprite.sprites.up;
               playerSprite.resetFrame();
               playerSprite.draw();
+              lastkeyInt = 119
               break;
             case "a":
               playerSprite.sprite = playerSprite.sprites.left;
               playerSprite.resetFrame();
               playerSprite.draw();
+              lastKeyInt = 97
               break;
             case "s":
               playerSprite.sprite = playerSprite.sprites.down;
               playerSprite.resetFrame();
               playerSprite.draw();
+              lastkeyInt = 115
               break;
             case "d":
               playerSprite.sprite = playerSprite.sprites.right;
               playerSprite.resetFrame();
               playerSprite.draw();
+              lastkeyInt = 100;
               break;
           }
+        }
+        var abufarray = []
+        abufarray.push(parseInt(myclientid))
+        abufarray.push(parseInt(movables[0].position.x))
+        abufarray.push(parseInt(movables[0].position.y))
+        abufarray.push(lastkeyInt)
+        console.log(abufarray)
+        socket.send(JSON.stringify(abufarray))
+
+        // Draw other players on the map if any.
+        // console.log(idPosMap.entries(), myclientid)
+        for (let [cid, cpos] of idPosMap.entries()) {
+          
+          let otherplayer = new Sprite({
+            image: playerDownSprite,
+            position: {
+              x: canvas.width / 2 - playerDownSprite.width / 4 / 2,
+              y: canvas.height / 2,
+            },
+            numFrames: 4,
+            sprites: {
+              up: playerUpSprite,
+              down: playerDownSprite,
+              left: playerLeftSprite,
+              right: playerRightSprite,
+            },
+          });
+          
+          if (cpos[2] == '119') {
+            otherplayer.image = playerSprite.sprites.up
+          } else if (cpos[2] == '115') {
+            otherplayer.image = playerSprite.sprites.down
+          } else if (cpos[2] == '97') {
+            otherplayer.image = playerSprite.sprites.left
+          } else if (cpos[2] == '100') {
+            otherplayer.image = playerSprite.sprites.right
+          }
+
+          otherplayer.position.x = cpos[0]
+          otherplayer.position.y = cpos[1]
+          console.log("other player", otherplayer.position)
+
+          otherplayer.resetFrame();
+          otherplayer.draw();
+          otherplayer.advanceFrame();
         }
       }
     }
@@ -383,9 +455,7 @@ function coveredByForeground() {
 
 let myclientid = NaN
 let idPosMap = new Map()
-let socket = new WebSocket("ws://localhost:8443/ws", 'echo-protocol')
 
-socket.binaryType = "arraybuffer"
 socket.onopen = function(e) {
   console.log("Connection established to the server: e = ", e)
   var abuf = new ArrayBuffer(4)
@@ -396,8 +466,6 @@ socket.onopen = function(e) {
 socket.onmessage = function(e) {
   if (e.data.length < 6) {
     myclientid = parseInt(e.data)
-    // console.log(e.data)
-
   } else {
     parsePlayerPos(e.data)
     console.log(idPosMap)
@@ -406,16 +474,36 @@ socket.onmessage = function(e) {
 
 function parsePlayerPos(posArrString) {
   posArr = JSON.parse(posArrString)
-  // // console.log(posArr)
   let i = 0
-  // for(let i = 0; i < posArr.length();) {
-    // if(posArr[i] == myclientid)
-    //   continue
+  for(let i = 0; i < posArr.length;) {
+    if(posArr[i] == myclientid) {
+        i+=5
+        continue
+    }
     pos = posArr.slice(i+1, i+4);
     idPosMap.set(posArr[i], pos)
+    createSprite(posArr[i])
     // console.log(pos)
-    // i += 5
-  // }
+    i += 5
+  }
+}
+
+function createSprite(cid) {
+  let playerSpriteOther = new Sprite({
+    image: playerDownSprite,
+    position: {
+      x: canvas.width / 2 - playerDownSprite.width / 4 / 2,
+      y: canvas.height / 2,
+    },
+    numFrames: 4,
+    sprites: {
+      up: playerUpSprite,
+      down: playerDownSprite,
+      left: playerLeftSprite,
+      right: playerRightSprite,
+    },
+  });
+  otherPlayerSpritesByCid.set(cid, playerSpriteOther);
 }
 
 
